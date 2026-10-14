@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #ffffff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background:  #ededed;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+html, body {
+  scroll-snap-type: y mandatory;
+  height: 100%;
+  overflow-y: scroll;
+}
+
+section {
+  scroll-snap-align: start;
+  height: 100vh;
+}
+
+/* Футер не участвует в snap страницы — иначе скролл может «отпружинивать» от нижней зоны */
+footer {
+  scroll-snap-align: none;
+  scroll-snap-stop: normal;
+  position: relative;
+  z-index: 30;
+}

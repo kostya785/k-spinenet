@@ -1,0 +1,15 @@
+.container {
+  position: relative;
+  width: 100%;
+  height: min(60vh, 700px);
+  overflow: hidden;
+}
+
+.word {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 2s ease, transform 2s ease;
+  pointer-events: none;
+  font-weight: 600;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
