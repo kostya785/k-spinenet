@@ -1,5 +1,6 @@
 import base64
 import io
+import os
 import traceback
 import cv2
 from flask import Flask, jsonify, request
@@ -9,6 +10,9 @@ from PIL import Image
 import pydicom
 from ultralytics import YOLO
 
+import db
+from ingest import ingest_image
+
 app = Flask(__name__)
 CORS(app)
 
@@ -16,16 +20,26 @@ CORS(app)
 MODEL_PATH = "best.pt"
 model = YOLO(MODEL_PATH)
 
+# Версия модели: имя файла весов + время изменения
+MODEL_VERSION = f"{os.path.basename(MODEL_PATH)}@{int(os.path.getmtime(MODEL_PATH))}"
+
 TARGET_SIZE = 896  # Наше рабочее разрешение, на котором обучали модель
+
+# Сколько детекций одного класса оставляем. По умолчанию один,
+# парные структуры (таз, головки бедренных костей) разрешаем дважды
+MAX_PER_CLASS = {"PB": 2, "FH": 2}
+DEFAULT_MAX_PER_CLASS = 1
+
+db.init_db()
+
+
+def is_dicom(raw_bytes, filename=""):
+  return filename.lower().endswith(".dcm") or raw_bytes[128:132] == b"DICM"
 
 
 def read_image_bytes(raw_bytes, filename=""):
   """Чтение обычных картинок (JPG/PNG) и DICOM файлов с нормализацией."""
-  is_dicom = filename.lower().endswith(".dcm") or raw_bytes.startswith(
-      b"\x00" * 128 + b"DICM"
-  )
-
-  if is_dicom:
+  if is_dicom(raw_bytes, filename):
     ds = pydicom.dcmread(io.BytesIO(raw_bytes))
     arr = ds.pixel_array.astype(np.float32)
 
@@ -70,7 +84,8 @@ def resize_with_aspect(image, target_size=TARGET_SIZE):
 
 
 def draw_segmentation_annotations(image, results, min_conf=0.35):
-  """Отрисовка масок сегментации: полупрозрачная заливка + тонкий контур + подпись."""
+  """Отрисовка масок сегментации: полупрозрачная заливка + тонкий контур + подпись.
+  Каждый класс остаётся не более MAX_PER_CLASS раз (самые уверенные детекции)."""
   annotated = image.copy()
   overlay = image.copy()
   h, w = image.shape[:2]
@@ -93,11 +108,24 @@ def draw_segmentation_annotations(image, results, min_conf=0.35):
       for cls_id in names.keys()
   }
 
-  for i, mask in enumerate(masks):
-    conf = float(boxes.conf[i])
-    if conf < min_conf:
+  # Для каждого класса оставляем только самые уверенные детекции
+  order = sorted(
+      range(len(masks)), key=lambda k: float(boxes.conf[k]), reverse=True
+  )
+  kept = []
+  per_class = {}
+  for k in order:
+    if float(boxes.conf[k]) < min_conf:
       continue
+    name = names[int(boxes.cls[k])]
+    if per_class.get(name, 0) >= MAX_PER_CLASS.get(name, DEFAULT_MAX_PER_CLASS):
+      continue
+    per_class[name] = per_class.get(name, 0) + 1
+    kept.append(k)
 
+  for i in kept:
+    mask = masks[i]
+    conf = float(boxes.conf[i])
     cls_id = int(boxes.cls[i])
     class_name = names[cls_id]
     color = colors[cls_id]
@@ -155,7 +183,7 @@ def draw_segmentation_annotations(image, results, min_conf=0.35):
           cv2.LINE_AA,
       )
 
-      # Формируем список полигонов для ответа API (если веб-фронтенд умеет сам их интерактивно подсвечивать)
+      # Формируем список полигонов для ответа API
       poly_pts = []
       for pt in cnt:
         poly_pts.append([int(pt[0][0]), int(pt[0][1])])
@@ -172,6 +200,27 @@ def draw_segmentation_annotations(image, results, min_conf=0.35):
   return annotated, detections
 
 
+def process_image(raw, filename=""):
+  """Чтение, инференс и отрисовка. Общая логика для /predict и импорта папки.
+  Возвращает (img_bgr, scale, annotated_bgr, detections)."""
+  img_bgr = read_image_bytes(raw, filename)
+  resized, scale = resize_with_aspect(img_bgr, TARGET_SIZE)
+
+  # Прогоняем через модель сегментации
+  results = model(resized, verbose=False)[0]
+
+  # Рисуем полигоны вместо рамок
+  annotated_bgr, detections = draw_segmentation_annotations(
+      resized, results, min_conf=0.35
+  )
+
+  # Упорядочиваем детекции сверху вниз (от шейных C2 до поясничных/таза)
+  detections.sort(
+      key=lambda x: x["polygon"][0][1] if len(x["polygon"]) > 0 else 0
+  )
+  return img_bgr, scale, annotated_bgr, detections
+
+
 @app.route("/predict", methods=["POST"])
 def predict():
   try:
@@ -181,27 +230,31 @@ def predict():
     file = request.files["file"]
     raw = file.read()
 
-    img_bgr = read_image_bytes(raw, file.filename)
-    resized, scale = resize_with_aspect(img_bgr, TARGET_SIZE)
+    img_bgr, scale, annotated_bgr, detections = process_image(raw, file.filename)
 
-    # Прогоняем через модель сегментации
-    results = model(resized, verbose=False)[0]
-
-    # Рисуем полигоны вместо рамок
-    annotated_bgr, detections = draw_segmentation_annotations(
-        resized, results, min_conf=0.35
-    )
-
-    # Упорядочиваем детекции сверху вниз (от шейных C2 до поясничных/таза)
-    detections.sort(
-        key=lambda x: x["polygon"][0][1] if len(x["polygon"]) > 0 else 0
-    )
+    # Сохраняем в каталог только DICOM; сбой хранилища не ломает ответ
+    image_id, saved = None, False
+    if is_dicom(raw, file.filename) and detections:
+      try:
+        image_id, _ = ingest_image(
+            raw, file.filename, img_bgr, scale, annotated_bgr,
+            detections, MODEL_VERSION,
+        )
+        saved = True
+      except Exception:
+        print("INGEST ERROR:")
+        print(traceback.format_exc())
 
     _, buffer = cv2.imencode(".png", annotated_bgr)
     img_base64 = base64.b64encode(buffer).decode("utf-8")
     image_url = f"data:image/png;base64,{img_base64}"
 
-    return jsonify({"detections": detections, "image_url": image_url}), 200
+    return jsonify({
+        "detections": detections,
+        "image_url": image_url,
+        "image_id": image_id,
+        "saved": saved,
+    }), 200
 
   except Exception as e:
     print("ERROR:", e)
