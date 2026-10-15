@@ -21,14 +21,14 @@
   color: #555;
   margin-top: 10px;
 }
-.subsubtitle{
+
+.subsubtitle {
   font-size: 18px;
   color: #9a9797;
-  margin-top: 10px;
-  align-items: center;
 }
 
 .cta {
+  display: inline-block;
   margin-top: 40px;
   padding: 14px 32px;
   border: 1px solid #111;
@@ -36,6 +36,7 @@
   font-size: 18px;
   cursor: pointer;
   border-radius: 6px;
+  text-decoration: none;
 }
 
 .disclaimer {

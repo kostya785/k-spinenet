@@ -10,9 +10,9 @@ export default function Hero() {
 
       <p className={styles.subtitle}>Understand the unseens</p>
 
-      <button type="button" className={styles.cta}>
-       <p className={styles.subsubtitle} >Try Model →</p>
-      </button>
+      <a href="#try" className={styles.cta}>
+        <span className={styles.subsubtitle}>Try Model →</span>
+      </a>
 
       <p className={styles.disclaimer}>
         This tool does not provide medical diagnosis. Consult a physician.
