@@ -139,9 +139,15 @@
 .resultTitle {
   margin-bottom: 10px;
   font-size: 22px;
+  color: #111;
 }
 
 .resultLine {
   margin: 6px 0;
   font-size: 18px;
+  color: #333;
+}
+
+.resultLine b {
+  color: #111;
 }
