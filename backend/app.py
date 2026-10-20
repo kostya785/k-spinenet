@@ -13,8 +13,11 @@ from ultralytics import YOLO
 import db
 from ingest import ingest_image
 
+from catalog_api import bp as catalog_bp
+
 app = Flask(__name__)
 CORS(app)
+app.register_blueprint(catalog_bp)
 
 # Указываем путь к обученным весам сегментации
 MODEL_PATH = "best.pt"

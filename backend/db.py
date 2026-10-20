@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS images (
     has_thoracic INTEGER DEFAULT 0,
     has_lumbar INTEGER DEFAULT 0,
     has_sacrum INTEGER DEFAULT 0,
+    has_pelvis INTEGER DEFAULT 0,
     has_femoral_heads INTEGER DEFAULT 0,
     only_cervical INTEGER DEFAULT 0,
     only_pelvis INTEGER DEFAULT 0
@@ -71,7 +72,8 @@ def init_db():
 
 
 def region_of(class_name):
-    """C* -> cervical, Th* -> thoracic, L* -> lumbar, S1 -> sacrum, FH -> femoral."""
+    """C* -> cervical, Th* -> thoracic, L* -> lumbar, S1 -> sacrum,
+    PB -> pelvis, FH -> femoral."""
     if re.fullmatch(r"C\d+", class_name):
         return "cervical"
     if re.fullmatch(r"Th\d+", class_name):
@@ -80,6 +82,8 @@ def region_of(class_name):
         return "lumbar"
     if class_name == "S1":
         return "sacrum"
+    if class_name == "PB":
+        return "pelvis"
     if class_name == "FH":
         return "femoral"
     return None
@@ -99,9 +103,12 @@ def derive_fields(detections):
         "has_thoracic": int("thoracic" in regions),
         "has_lumbar": int("lumbar" in regions),
         "has_sacrum": int("sacrum" in regions),
+        "has_pelvis": int("pelvis" in regions),
         "has_femoral_heads": int("femoral" in regions),
         "only_cervical": int(bool(names) and regions == {"cervical"}),
-        "only_pelvis": int(bool(names) and regions <= {"sacrum", "femoral"}),
+        "only_pelvis": int(
+            bool(names) and regions <= {"sacrum", "pelvis", "femoral"}
+        ),
     }
 
 
