@@ -8,20 +8,25 @@ from flask_cors import CORS
 import numpy as np
 from PIL import Image
 import pydicom
-from ultralytics import YOLO
 
 import db
 from ingest import ingest_image
-
 from catalog_api import bp as catalog_bp
+from onnx_infer import SegModel
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
-CORS(app)
+_origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+CORS(app, origins=_origins or "*")
 app.register_blueprint(catalog_bp)
 
-# Указываем путь к обученным весам сегментации
-MODEL_PATH = "best.pt"
-model = YOLO(MODEL_PATH)
+# Публичный режим: загруженные снимки в каталог не сохраняются
+PUBLIC_MODE = os.environ.get("PUBLIC_MODE") == "1"
+
+# Обученные веса сегментации (ONNX)
+MODEL_PATH = os.environ.get("MODEL_PATH", os.path.join(BASE_DIR, "best.onnx"))
+model = SegModel(MODEL_PATH, imgsz=896)
 
 # Версия модели: имя файла весов + время изменения
 MODEL_VERSION = f"{os.path.basename(MODEL_PATH)}@{int(os.path.getmtime(MODEL_PATH))}"
@@ -86,19 +91,17 @@ def resize_with_aspect(image, target_size=TARGET_SIZE):
   return resized, scale
 
 
-def draw_segmentation_annotations(image, results, min_conf=0.35):
+def draw_segmentation_annotations(image, det, min_conf=0.35):
   """Отрисовка масок сегментации: полупрозрачная заливка + тонкий контур + подпись.
   Каждый класс остаётся не более MAX_PER_CLASS раз (самые уверенные детекции)."""
   annotated = image.copy()
   overlay = image.copy()
   h, w = image.shape[:2]
 
-  if results.masks is None:
-    return annotated, []
+  masks, confs, cls_ids, names = det["masks"], det["confs"], det["cls"], det["names"]
 
-  boxes = results.boxes
-  masks = results.masks.data.cpu().numpy()  # Бинарные маски
-  names = results.names
+  if len(masks) == 0:
+    return annotated, []
 
   detections = []
 
@@ -113,14 +116,14 @@ def draw_segmentation_annotations(image, results, min_conf=0.35):
 
   # Для каждого класса оставляем только самые уверенные детекции
   order = sorted(
-      range(len(masks)), key=lambda k: float(boxes.conf[k]), reverse=True
+      range(len(masks)), key=lambda k: float(confs[k]), reverse=True
   )
   kept = []
   per_class = {}
   for k in order:
-    if float(boxes.conf[k]) < min_conf:
+    if float(confs[k]) < min_conf:
       continue
-    name = names[int(boxes.cls[k])]
+    name = names[int(cls_ids[k])]
     if per_class.get(name, 0) >= MAX_PER_CLASS.get(name, DEFAULT_MAX_PER_CLASS):
       continue
     per_class[name] = per_class.get(name, 0) + 1
@@ -128,14 +131,14 @@ def draw_segmentation_annotations(image, results, min_conf=0.35):
 
   for i in kept:
     mask = masks[i]
-    conf = float(boxes.conf[i])
-    cls_id = int(boxes.cls[i])
+    conf = float(confs[i])
+    cls_id = int(cls_ids[i])
     class_name = names[cls_id]
     color = colors[cls_id]
 
     # Масштабируем маску под текущий размер картинки
     mask_resized = cv2.resize(
-        mask, (w, h), interpolation=cv2.INTER_NEAREST
+        mask.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST
     ).astype(np.uint8)
 
     # 1. Закрашиваем область маски на слое overlay
@@ -210,11 +213,11 @@ def process_image(raw, filename=""):
   resized, scale = resize_with_aspect(img_bgr, TARGET_SIZE)
 
   # Прогоняем через модель сегментации
-  results = model(resized, verbose=False)[0]
+  det = model.predict(resized, conf=0.35)
 
   # Рисуем полигоны вместо рамок
   annotated_bgr, detections = draw_segmentation_annotations(
-      resized, results, min_conf=0.35
+      resized, det, min_conf=0.35
   )
 
   # Упорядочиваем детекции сверху вниз (от шейных C2 до поясничных/таза)
@@ -235,9 +238,10 @@ def predict():
 
     img_bgr, scale, annotated_bgr, detections = process_image(raw, file.filename)
 
-    # Сохраняем в каталог только DICOM; сбой хранилища не ломает ответ
+    # Сохраняем в каталог только DICOM (и не в публичном режиме);
+    # сбой хранилища не ломает ответ
     image_id, saved = None, False
-    if is_dicom(raw, file.filename) and detections:
+    if not PUBLIC_MODE and is_dicom(raw, file.filename) and detections:
       try:
         image_id, _ = ingest_image(
             raw, file.filename, img_bgr, scale, annotated_bgr,
@@ -266,5 +270,9 @@ def predict():
 
 
 if __name__ == "__main__":
-  print("=== Запуск сервера Flask (Сегментация) на порту 8000 ===")
-  app.run(host="0.0.0.0", port=8000, debug=True)
+  print("=== Запуск сервера Flask (Сегментация, ONNX) ===")
+  app.run(
+      host=os.environ.get("FLASK_HOST", "127.0.0.1"),
+      port=int(os.environ.get("PORT", 8000)),
+      debug=os.environ.get("FLASK_DEBUG") == "1",
+  )
