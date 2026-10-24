@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import sqlite3
 from contextlib import contextmanager
@@ -6,8 +7,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
-DB_PATH = DATA_DIR / "catalog.db"
+_db_env = os.environ.get("DB_PATH")
+DB_PATH = (BASE_DIR / _db_env) if _db_env else (BASE_DIR / "data" / "catalog.db")
+DATA_DIR = DB_PATH.parent
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS images (

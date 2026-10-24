@@ -7,6 +7,13 @@ import db
 
 bp = Blueprint("catalog", __name__)
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PUBLIC_MODE = os.environ.get("PUBLIC_MODE") == "1"
+
+
+def _resolve(p):
+    return p if os.path.isabs(p) else os.path.join(BASE_DIR, p)
+
 REGION_COLS = {
     "cervical": "has_cervical",
     "thoracic": "has_thoracic",
@@ -161,6 +168,8 @@ def get_image(image_id):
 
 @bp.route("/api/catalog/<int:image_id>", methods=["DELETE"])
 def delete_image(image_id):
+    if PUBLIC_MODE:
+        return jsonify({"error": "read-only catalog"}), 403
     with db.get_conn() as conn:
         row = conn.execute(
             "SELECT dicom_path, preview_path, thumb_path FROM images WHERE id = ?",
@@ -185,6 +194,12 @@ def get_file(kind, image_id):
         row = conn.execute(
             f"SELECT {col} AS p FROM images WHERE id = ?", (image_id,)
         ).fetchone()
-    if row is None or not row["p"] or not os.path.exists(row["p"]):
+    path = _resolve(row["p"]) if row and row["p"] else None
+    if path is None or not os.path.exists(path):
         abort(404)
-    return send_file(row["p"])
+    return send_file(path)
+
+
+@bp.route("/api/config")
+def config():
+    return jsonify({"public_mode": PUBLIC_MODE})
