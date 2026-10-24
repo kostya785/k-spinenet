@@ -75,6 +75,14 @@ export default function CatalogPage() {
   const [reload, setReload] = useState(0);
   const [open, setOpen] = useState(null);
   const [confirm, setConfirm] = useState(false);
+  const [readOnly, setReadOnly] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/api/config`)
+      .then((r) => r.json())
+      .then((c) => setReadOnly(Boolean(c.public_mode)))
+      .catch(() => {});
+  }, []);
 
   // Читаем фильтры из адресной строки (ссылку с фильтрами можно отправить)
   useEffect(() => {
@@ -403,6 +411,7 @@ export default function CatalogPage() {
                       type="button"
                       className={styles.ghost}
                       onClick={() => setConfirm(true)}
+                      style={readOnly ? { display: "none" } : undefined}
                     >
                       Delete
                     </button>

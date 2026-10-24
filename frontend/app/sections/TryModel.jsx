@@ -3,6 +3,7 @@
 import { useState } from "react";
 import styles from "./TryModel.module.css";
 import { GALLERY_PATHS } from "../javascript/tryModelGallery";
+import { API_URL, asset } from "../../lib/config";
 
 export default function TryModel() {
   const [preview, setPreview] = useState(null);
@@ -32,7 +33,7 @@ export default function TryModel() {
     setPreview(src);
     setResult(null);
 
-    const response = await fetch(src);
+    const response = await fetch(asset(src));
     const blob = await response.blob();
     const galleryFile = new File([blob], "gallery.jpg", { type: blob.type });
 
@@ -48,7 +49,7 @@ export default function TryModel() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("http://localhost:8000/predict", {
+      const res = await fetch(`${API_URL}/predict`, {
         method: "POST",
         body: formData,
       });
@@ -103,7 +104,7 @@ export default function TryModel() {
           {GALLERY_PATHS.map((src, i) => (
             <img
               key={i}
-              src={src}
+              src={asset(src)}
               alt=""
               onClick={() => handleGallerySelect(src)}
               className={`${styles.thumb} ${
@@ -128,7 +129,7 @@ export default function TryModel() {
           >
             <img
               key={preview}
-              src={preview}
+              src={asset(preview)}
               alt="preview"
               className={styles.previewImg}
               style={{ maxHeight: "500px", objectFit: "contain" }}
@@ -253,7 +254,7 @@ export default function TryModel() {
             }}
           >
             <img
-              src={preview}
+              src={asset(preview)}
               alt="Detailed View"
               style={{
                 transform: `scale(${zoomLevel})`,

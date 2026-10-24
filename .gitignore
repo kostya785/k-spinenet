@@ -51,3 +51,5 @@ __pycache__
 backend/data/
 backend/storage/
 !backend/best.onnx
+
+frontend/out/

@@ -23,7 +23,7 @@ export default function About() {
 <Slide
         imageSide="right"
         title="Model Accuracy"
-        text="The chart shows the mask mAP50 of the final model on the validation set."
+        text="The chart shows the mask mAP50 of the final model on the annotated dataset (preliminary)."
         image={<AccuracyCircle scrollRoot={scrollRootEl} percent={96.8} />}
       />
 
@@ -44,7 +44,7 @@ export default function About() {
 <Slide
   imageSide="left"
   title="Model Performance Metrics"
-  text="These metrics summarize the final performance of the model on the validation set after 60 epochs (20 initial + 40 fine-tuning). Metrics are given for segmentation masks. Precision and Recall describe detection quality, while mAP metrics reflect overall accuracy across IoU thresholds."
+  text="These metrics summarize the final performance of the model on the annotated dataset (preliminary) after 60 epochs (20 initial + 40 fine-tuning). Metrics are given for segmentation masks. Precision and Recall describe detection quality, while mAP metrics reflect overall accuracy across IoU thresholds."
   image={<MetricCards />}
 />
 

@@ -23,7 +23,7 @@ export default function FAQPage() {
         />
                 <FAQItem
           question="What percentage of accuracy?"
-          answer="On the validation set the model reaches 96.8% mask mAP50 and 58.6% mask mAP50-95; precision is 93.3% and recall is 93.8%."
+          answer="Preliminary results on the annotated dataset: 96.8% mask mAP50 and 58.6% mask mAP50-95; precision is 93.3% and recall is 93.8%. An evaluation on an independent test set is planned."
         />
       </div>
     </section>
