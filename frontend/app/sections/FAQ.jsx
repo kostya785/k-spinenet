@@ -21,9 +21,9 @@ export default function FAQPage() {
           question="Is registration required?"
           answer="No, the demo version is available without registration. API access requires a key."
         />
-        <FAQItem
+                <FAQItem
           question="What percentage of accuracy?"
-          answer="Accuracy depends on the image type, but on average exceeds 90% on the validation set."
+          answer="On the validation set the model reaches 96.8% mask mAP50 and 58.6% mask mAP50-95; precision is 93.3% and recall is 93.8%."
         />
       </div>
     </section>

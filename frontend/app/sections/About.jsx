@@ -20,11 +20,11 @@ export default function About() {
         image={<CounterBlock />}
       />
 
-      <Slide
+<Slide
         imageSide="right"
         title="Model Accuracy"
-        text="The model achieves high precision on vertebra detection. The chart shows the accuracy metric."
-        image={<AccuracyCircle scrollRoot={scrollRootEl} percent={95} />}
+        text="The chart shows the mask mAP50 of the final model on the validation set."
+        image={<AccuracyCircle scrollRoot={scrollRootEl} percent={96.8} />}
       />
 
 <Slide
@@ -37,13 +37,14 @@ export default function About() {
 <Slide
   imageSide="right"
   title="Training Dynamics"
-  text="This chart shows how the model improved during training. Loss decreases while mAP grows — a sign of stable learning."
+  text="This chart shows box mAP50‑95 and training box loss over 60 epochs: 20 epochs of initial training and 40 epochs of fine-tuning, which starts at epoch 21."
   image={<TrainingChart />}
 />
+
 <Slide
   imageSide="left"
   title="Model Performance Metrics"
-  text="These metrics summarize the final performance of the model after 60 epochs. Precision and Recall describe detection quality, while mAP metrics reflect overall accuracy across IoU thresholds."
+  text="These metrics summarize the final performance of the model on the validation set after 60 epochs (20 initial + 40 fine-tuning). Metrics are given for segmentation masks. Precision and Recall describe detection quality, while mAP metrics reflect overall accuracy across IoU thresholds."
   image={<MetricCards />}
 />
 
@@ -208,17 +209,16 @@ function DatasetGrid() {
   );
 }
 function TrainingChart() {
-  const epochs = [
-    1,2,3,4,5,6,7,8,9,10,
-    11,12,13,14,15,16,17,18,19,20
-  ];
-
-  // mAP50-95 (B)
+  // mAP50-95 (B): эпохи 1-20 первый запуск, 21-60 дообучение
   const mAP = [
     0.38716,0.48541,0.50232,0.56995,0.55778,
     0.56921,0.57866,0.59048,0.59547,0.60216,
     0.60283,0.60485,0.60858,0.61410,0.61304,
-    0.61018,0.61225,0.61504,0.61522,0.61438
+    0.61018,0.61225,0.61504,0.61522,0.61438,
+    0.64908,0.63793,0.62740,0.64569,0.61326,0.65497,0.65719,0.66109,0.66128,0.64767,
+    0.65805,0.66474,0.66734,0.67179,0.67270,0.67187,0.67978,0.67886,0.68067,0.67897,
+    0.69293,0.69521,0.69798,0.69777,0.69842,0.70495,0.70884,0.70725,0.71011,0.71290,
+    0.70741,0.71137,0.71344,0.71386,0.71610,0.71726,0.71843,0.71890,0.71919,0.71976
   ];
 
   // train/box_loss
@@ -226,8 +226,16 @@ function TrainingChart() {
     1.69368,1.21423,1.15222,1.11767,1.08817,
     1.06091,1.04442,1.03241,1.01150,1.00057,
     0.98300,0.96955,0.95026,0.94425,0.92561,
-    0.91538,0.90153,0.89416,0.88686,0.87804
+    0.91538,0.90153,0.89416,0.88686,0.87804,
+    1.10444,1.10823,1.12193,1.11555,1.10770,1.10489,1.09705,1.09589,1.08969,1.09075,
+    1.09797,1.08888,1.09134,1.08296,1.08790,1.07138,1.06905,1.06724,1.06610,1.05343,
+    1.03655,1.04647,1.03210,1.03038,1.01702,1.02159,1.01705,1.01393,1.01017,1.00076,
+    0.98543,0.97539,0.96855,0.96648,0.95772,0.95353,0.95404,0.95422,0.94483,0.94580
   ];
+
+  const n = mAP.length;
+  const step = 620 / (n - 1);
+  const x = (i) => 40 + i * step;
 
   // нормализация для SVG
   const maxLoss = Math.max(...loss);
@@ -239,11 +247,11 @@ function TrainingChart() {
     280 - ((value - min) / (max - min)) * 240;
 
   const lossPoints = loss
-    .map((v, i) => `${40 + i * 30},${normalize(v, minLoss, maxLoss)}`)
+    .map((v, i) => `${x(i)},${normalize(v, minLoss, maxLoss)}`)
     .join(" ");
 
   const mapPoints = mAP
-    .map((v, i) => `${40 + i * 30},${normalize(v, minMAP, maxMAP)}`)
+    .map((v, i) => `${x(i)},${normalize(v, minMAP, maxMAP)}`)
     .join(" ");
 
   return (
@@ -265,9 +273,9 @@ function TrainingChart() {
         {loss.map((v, i) => (
           <circle
             key={"l"+i}
-            cx={40 + i * 30}
+            cx={x(i)}
             cy={normalize(v, minLoss, maxLoss)}
-            r="4"
+            r="2.5"
             className={styles.lossPoint}
           />
         ))}
@@ -276,9 +284,9 @@ function TrainingChart() {
         {mAP.map((v, i) => (
           <circle
             key={"m"+i}
-            cx={40 + i * 30}
+            cx={x(i)}
             cy={normalize(v, minMAP, maxMAP)}
-            r="4"
+            r="2.5"
             className={styles.mapPoint}
           />
         ))}
@@ -289,7 +297,7 @@ function TrainingChart() {
           <span className={styles.lossDot}></span> Train Box Loss ↓
         </div>
         <div className={styles.legendItem}>
-          <span className={styles.mapDot}></span> mAP50‑95 ↑
+          <span className={styles.mapDot}></span> Box mAP50‑95 ↑
         </div>
       </div>
 
@@ -297,7 +305,7 @@ function TrainingChart() {
   <b>Train Box Loss</b> — shows how accurately the model predicts bounding box
   coordinates. Lower values indicate better localization performance.
   <br />
-  <b>mAP50‑95</b> — the averaged detection accuracy across IoU thresholds from
+  <b>Box mAP50‑95</b> — the averaged detection accuracy across IoU thresholds from
   0.50 to 0.95. This is the primary metric for evaluating object detection
   quality: higher values indicate better overall performance.
 </p>
@@ -308,10 +316,10 @@ function TrainingChart() {
 
 function MetricCards() {
   const metrics = [
-    { label: "Precision", value: 0.81594, color: "#4a90e2" },
-    { label: "Recall", value: 0.87471, color: "#50c878" },
-    { label: "mAP50", value: 0.87364, color: "#a78bfa" },
-    { label: "mAP50‑95", value: 0.61438, color: "#ff7f50" },
+    { label: "Precision", value: 0.93291, color: "#4a90e2" },
+    { label: "Recall", value: 0.93767, color: "#50c878" },
+    { label: "mAP50", value: 0.96792, color: "#a78bfa" },
+    { label: "mAP50‑95", value: 0.58552, color: "#ff7f50" },
   ];
 
   return (
@@ -329,4 +337,5 @@ function MetricCards() {
       ))}
     </div>
   );
+
 }
