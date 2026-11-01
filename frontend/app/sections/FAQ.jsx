@@ -18,8 +18,8 @@ export default function FAQPage() {
           answer="Standard frontal and sagittal images are supported, including all sections of the spine."
         />
         <FAQItem
-          question="Is registration required?"
-          answer="No, the demo version is available without registration. API access requires a key."
+          question="Where are my images processed and stored?"
+          answer="Uploaded images are processed only while your request is handled and are not saved. The demo server is hosted outside the Russian Federation (Render), so please do not upload images that contain personal data: DICOM files with a patient name, birth date, address or phone number are rejected. Images in the gallery and the catalog are anonymized or taken from open sources. Details are in the Privacy Policy at /privacy/."
         />
                 <FAQItem
           question="What percentage of accuracy?"

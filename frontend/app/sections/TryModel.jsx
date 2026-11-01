@@ -4,23 +4,62 @@ import { useState } from "react";
 import styles from "./TryModel.module.css";
 import { GALLERY_PATHS } from "../javascript/tryModelGallery";
 import { API_URL, asset } from "../../lib/config";
+import dicomParser from "dicom-parser";
+import Link from "next/link";
+
+const BLOCK_PERSONAL = process.env.NEXT_PUBLIC_BLOCK_PERSONAL_DATA === "1";
+const NOTICE_TEXT =
+  "This file contains patient identifiers (name or birth date). It was not uploaded. Please anonymize it or choose an image from the gallery.";
+
+// Проверка тегов DICOM прямо в браузере: файл с данными пациента не уходит на сервер
+function hasPersonalData(buffer) {
+  try {
+    const ds = dicomParser.parseDicom(new Uint8Array(buffer));
+    const name = (ds.string("x00100010") || "").trim();
+    const anon = /anon|unknown|removed|de-?identified|none/i.test(name) || /\d/.test(name);
+    if (name && !anon) return true;
+    return ["x00100030", "x00101040", "x00102154", "x00101001"].some(
+      (t) => (ds.string(t) || "").trim()
+    );
+  } catch {
+    return false;
+  }
+}
 
 export default function TryModel() {
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [userUpload, setUserUpload] = useState(false);
 
   // Состояния для Fullscreen / Modal Zoom
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
 
-  function handleUpload(e) {
-    const uploaded = e.target.files?.[0];
+  async function handleUpload(e) {
+    const input = e.target;
+    const uploaded = input.files?.[0];
     if (!uploaded) return;
 
-    setFile(uploaded);
+    setNotice("");
     const isDcm = uploaded.name.toLowerCase().endsWith(".dcm");
+    if (isDcm && BLOCK_PERSONAL) {
+      const buf = await uploaded.arrayBuffer();
+      if (hasPersonalData(buf)) {
+        input.value = "";
+        setFile(null);
+        setPreview(null);
+        setResult(null);
+        setNotice(NOTICE_TEXT);
+        return;
+      }
+    }
+    setFile(uploaded);
+    setUserUpload(true);
+    setAgreed(false);
     if (!isDcm) {
       setPreview(URL.createObjectURL(uploaded));
     } else {
@@ -30,6 +69,8 @@ export default function TryModel() {
   }
 
   async function handleGallerySelect(src) {
+    setUserUpload(false);
+    setNotice("");
     setPreview(src);
     setResult(null);
 
@@ -56,6 +97,12 @@ export default function TryModel() {
 
       const data = await res.json();
 
+      if (data.error === "personal_data") {
+        setNotice(NOTICE_TEXT);
+        setLoading(false);
+        return;
+      }
+
       if (data.image_url) {
         setPreview(data.image_url);
       }
@@ -81,7 +128,8 @@ export default function TryModel() {
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 0.3, 3));
   const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 0.3, 0.7));
 
-  const canDetect = Boolean(file) && !loading;
+  const needConsent = BLOCK_PERSONAL && userUpload;
+  const canDetect = Boolean(file) && !loading && (!needConsent || agreed);
 
   return (
     <div className={styles.root}>
@@ -96,6 +144,17 @@ export default function TryModel() {
         />
         <span className={styles.uploadHint}>Click to upload X‑ray or DICOM</span>
       </label>
+
+      {BLOCK_PERSONAL && (
+        <p style={{ fontSize: "14px", color: "#555", maxWidth: "500px", textAlign: "center", margin: "0 0 10px" }}>
+          Do not upload images that contain personal data. Files with patient identifiers are rejected.
+        </p>
+      )}
+      {notice && (
+        <p role="alert" style={{ fontSize: "14px", color: "#b3261e", maxWidth: "500px", textAlign: "center", margin: "0 0 10px" }}>
+          {notice}
+        </p>
+      )}
 
       <div className={styles.gallerySticky}>
         <p className={styles.galleryHint}>or choose from our gallery</p>
@@ -152,6 +211,25 @@ export default function TryModel() {
         </div>
       )}
 
+      {needConsent && (
+        <label
+          style={{ display: "flex", gap: "8px", alignItems: "flex-start", maxWidth: "500px", margin: "0 0 16px", fontSize: "14px", color: "#333", cursor: "pointer" }}
+        >
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            style={{ marginTop: "3px" }}
+          />
+          <span>
+            I confirm that this image contains no personal data and I have read the{" "}
+            <Link href="/privacy/" style={{ textDecoration: "underline" }}>
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
+      )}
       <button
         type="button"
         onClick={handleDetect}
