@@ -27,6 +27,9 @@ export default function Header() {
         <Link href="/#faq" className={styles.navLink}>
           FAQ
         </Link>
+        <Link href="/privacy/" className={styles.navLink}>
+          Privacy
+        </Link>
       </nav>
 
       <button type="button" className={styles.langBtn}>
