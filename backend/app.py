@@ -45,6 +45,29 @@ def is_dicom(raw_bytes, filename=""):
   return filename.lower().endswith(".dcm") or raw_bytes[128:132] == b"DICM"
 
 
+ANON_WORDS = ("anon", "unknown", "removed", "deidentified", "de-identified", "none")
+
+
+def _has_identifiers(ds):
+  """True, если в DICOM остались прямые идентификаторы пациента.
+  Пустое имя, слова вроде ANONYMOUS и псевдонимы с цифрами (LIDC-IDRI-0001) допустимы."""
+  name = str(ds.get("PatientName", "") or "").strip()
+  if name and not any(w in name.lower() for w in ANON_WORDS) and not any(c.isdigit() for c in name):
+    return True
+  for tag in ("PatientBirthDate", "PatientAddress", "PatientTelephoneNumbers", "OtherPatientNames"):
+    if str(ds.get(tag, "") or "").strip():
+      return True
+  return False
+
+
+def looks_personal(raw_bytes):
+  try:
+    ds = pydicom.dcmread(io.BytesIO(raw_bytes), stop_before_pixels=True, force=True)
+  except Exception:
+    return False
+  return _has_identifiers(ds)
+
+
 def read_image_bytes(raw_bytes, filename=""):
   """Чтение обычных картинок (JPG/PNG) и DICOM файлов с нормализацией."""
   if is_dicom(raw_bytes, filename):
@@ -235,6 +258,10 @@ def predict():
 
     file = request.files["file"]
     raw = file.read()
+
+    # Публичный режим: файлы с данными пациента не обрабатываются и нигде не сохраняются
+    if PUBLIC_MODE and is_dicom(raw, file.filename) and looks_personal(raw):
+      return jsonify({"detections": [], "error": "personal_data"}), 422
 
     img_bgr, scale, annotated_bgr, detections = process_image(raw, file.filename)
 
