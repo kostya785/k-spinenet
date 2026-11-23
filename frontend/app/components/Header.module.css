@@ -25,7 +25,6 @@
   display: block;
 }
 
-
 .nav {
   display: flex;
   gap: 32px;
@@ -50,4 +49,76 @@
 .langBtn:hover {
   background: #111;
   color: #fff;
+}
+
+.burger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.burger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #111;
+  border-radius: 1px;
+}
+
+@media (max-width: 900px) {
+  .header {
+    height: 64px;
+    padding: 0 16px;
+  }
+
+  .logoImg {
+    width: 56px;
+    height: 56px;
+  }
+
+  .langBtn {
+    display: none;
+  }
+
+  .burger {
+    display: flex;
+  }
+
+  .nav {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 0;
+    padding: 8px 0;
+    font-size: 17px;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
+    transform: translateY(-120%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.25s ease, opacity 0.2s ease;
+  }
+
+  .navOpen {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .navLink {
+    padding: 14px 24px;
+    border-bottom: 1px solid #f0f0f0;
+  }
 }

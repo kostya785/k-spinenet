@@ -45,3 +45,17 @@ footer {
 html {
   scroll-behavior: smooth;
 }
+
+
+@media (max-width: 768px) {
+  html,
+  body {
+    scroll-snap-type: y proximity;
+  }
+
+  section {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}

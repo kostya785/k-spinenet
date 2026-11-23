@@ -151,3 +151,37 @@
 .resultLine b {
   color: #111;
 }
+@media (max-width: 768px) {
+  .root {
+    height: 100vh;
+    height: 100dvh;
+    padding: 80px 16px 40px;
+  }
+
+  .title {
+    font-size: 28px;
+    margin-bottom: 14px;
+  }
+
+  .uploadLabel {
+    height: 160px;
+  }
+
+  .uploadHint {
+    font-size: 15px;
+  }
+
+  .gallerySticky {
+    top: 64px;
+  }
+
+  .thumb {
+    width: 88px;
+    height: 88px;
+  }
+
+  .detectBtn {
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+}
