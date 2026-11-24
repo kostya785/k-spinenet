@@ -9,8 +9,6 @@ export const translations = {
       "nav.privacy": "Privacy",
   
       /* ---------- hero ---------- */
-      "hero.title": "X-Ray Detection",
-      "hero.subtitle": "Understand the unseens",
       "hero.cta": "Try Model →",
       "hero.disclaimer":
         "This tool does not provide medical diagnosis. Consult a physician.",
@@ -78,8 +76,38 @@ export const translations = {
       "faq.a4":
         "Preliminary results on the annotated dataset: 96.8% mask mAP50 and 58.6% mask mAP50-95; precision is 93.3% and recall is 93.8%. An evaluation on an independent test set is planned.",
   
-      /* ---------- footer ---------- */
-      "footer.builtBy": "built by",
+      /* ---------- catalog ---------- */
+      "catalog.title": "Catalog",
+      "catalog.region": "Region",
+      "catalog.region.cervical": "Cervical",
+      "catalog.region.thoracic": "Thoracic",
+      "catalog.region.lumbar": "Lumbar",
+      "catalog.region.sacrum": "Sacrum",
+      "catalog.region.pelvis": "Pelvis",
+      "catalog.region.femoral": "Femoral heads",
+      "catalog.mode.contains": "Contains",
+      "catalog.mode.only": "Only",
+      "catalog.structures": "Specific structures",
+      "catalog.minConf": "Minimum model confidence",
+      "catalog.minCount": "Minimum structures found",
+      "catalog.reset": "Reset filters",
+      "catalog.hint": "Confidence is the model's own score, not image quality.",
+      "catalog.sort.newest": "Newest first",
+      "catalog.sort.confidence": "Highest confidence",
+      "catalog.sort.count": "Most structures",
+      "catalog.images.one": "image",
+      "catalog.images.few": "images",
+      "catalog.images.many": "images",
+      "catalog.structuresCount.one": "structure",
+      "catalog.structuresCount.few": "structures",
+      "catalog.structuresCount.many": "structures",
+      "catalog.serverError": "Cannot reach the server. Is the backend running?",
+      "catalog.empty": "No images match these filters",
+      "catalog.alt": "Annotated X-ray",
+      "catalog.delete": "Delete",
+      "catalog.deleteYes": "Yes, delete",
+      "catalog.cancel": "Cancel",
+      "catalog.close": "Close",
     },
   
     ru: {
@@ -92,8 +120,6 @@ export const translations = {
       "nav.privacy": "Приватность",
   
       /* ---------- hero ---------- */
-      "hero.title": "Детекция на рентгене",
-      "hero.subtitle": "Увидеть невидимое",
       "hero.cta": "Попробовать модель →",
       "hero.disclaimer":
         "Этот инструмент не ставит медицинский диагноз. Обратитесь к врачу.",
@@ -161,7 +187,37 @@ export const translations = {
       "faq.a4":
         "Предварительные результаты на размеченном датасете: 96,8% mask mAP50 и 58,6% mask mAP50-95; precision — 93,3%, recall — 93,8%. Оценка на независимой тестовой выборке запланирована.",
   
-      /* ---------- footer ---------- */
-      "footer.builtBy": "сделано",
+      /* ---------- catalog ---------- */
+      "catalog.title": "Каталог",
+      "catalog.region": "Регион",
+      "catalog.region.cervical": "Шейный",
+      "catalog.region.thoracic": "Грудной",
+      "catalog.region.lumbar": "Поясничный",
+      "catalog.region.sacrum": "Крестец",
+      "catalog.region.pelvis": "Таз",
+      "catalog.region.femoral": "Головки бедренных костей",
+      "catalog.mode.contains": "Содержит",
+      "catalog.mode.only": "Только",
+      "catalog.structures": "Конкретные структуры",
+      "catalog.minConf": "Минимальная уверенность модели",
+      "catalog.minCount": "Минимум найденных структур",
+      "catalog.reset": "Сбросить фильтры",
+      "catalog.hint": "Уверенность — это собственная оценка модели, а не качество снимка.",
+      "catalog.sort.newest": "Сначала новые",
+      "catalog.sort.confidence": "Наибольшая уверенность",
+      "catalog.sort.count": "Больше всего структур",
+      "catalog.images.one": "изображение",
+      "catalog.images.few": "изображения",
+      "catalog.images.many": "изображений",
+      "catalog.structuresCount.one": "структура",
+      "catalog.structuresCount.few": "структуры",
+      "catalog.structuresCount.many": "структур",
+      "catalog.serverError": "Не удаётся связаться с сервером. Запущен ли бэкенд?",
+      "catalog.empty": "Нет изображений, подходящих под фильтры",
+      "catalog.alt": "Размеченный рентгеновский снимок",
+      "catalog.delete": "Удалить",
+      "catalog.deleteYes": "Да, удалить",
+      "catalog.cancel": "Отмена",
+      "catalog.close": "Закрыть",
     },
   };

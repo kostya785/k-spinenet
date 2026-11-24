@@ -2,16 +2,13 @@
 
 import styles from "./Footer.module.css";
 import { FaTelegram, FaInstagram, FaGithub, FaEnvelope, FaPinterest } from "react-icons/fa";
-import { useLang } from "../i18n/LanguageProvider";
 
 export default function Footer() {
-  const { t } = useLang();
-
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <div className={styles.credit}>
-          {t("footer.builtBy")} <b>Konstantinopol</b>
+          built by <b>Konstantinopol</b>
         </div>
 
         <div className={styles.links}>

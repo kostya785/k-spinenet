@@ -11,9 +11,9 @@ export default function Hero() {
     <div className={styles.root}>
       <WordCloud />
 
-      <h1 className={styles.title}>{t("hero.title")}</h1>
+      <h1 className={styles.title}>X‑Ray Detection</h1>
 
-      <p className={styles.subtitle}>{t("hero.subtitle")}</p>
+      <p className={styles.subtitle}>Understand the unseens</p>
 
       <a href="#try" className={styles.cta}>
         <span className={styles.subsubtitle}>{t("hero.cta")}</span>

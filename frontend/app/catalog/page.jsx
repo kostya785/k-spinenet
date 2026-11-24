@@ -2,17 +2,13 @@
 
 import { useEffect, useState } from "react";
 import styles from "./catalog.module.css";
+import { useLang } from "../i18n/LanguageProvider";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-const REGIONS = [
-  ["cervical", "Cervical"],
-  ["thoracic", "Thoracic"],
-  ["lumbar", "Lumbar"],
-  ["sacrum", "Sacrum"],
-  ["pelvis", "Pelvis"],
-  ["femoral", "Femoral heads"],
-];
+// ключи регионов уходят на сервер в запросе, подписи берутся из словаря
+const REGIONS = ["cervical", "thoracic", "lumbar", "sacrum", "pelvis", "femoral"];
+const MODES = ["contains", "only"];
 const range = (p, a, b) =>
   Array.from({ length: b - a + 1 }, (_, i) => `${p}${a + i}`);
 const CLASSES = [
@@ -23,11 +19,7 @@ const CLASSES = [
   "PB",
   "FH",
 ];
-const SORTS = [
-  ["newest", "Newest first"],
-  ["confidence", "Highest confidence"],
-  ["count", "Most structures"],
-];
+const SORTS = ["newest", "confidence", "count"];
 const DEFAULTS = {
   regions: [],
   mode: "contains",
@@ -39,13 +31,23 @@ const DEFAULTS = {
 };
 
 function regionOf(name) {
-  if (/^C\d/.test(name)) return "Cervical";
-  if (/^Th\d/.test(name)) return "Thoracic";
-  if (/^L\d/.test(name)) return "Lumbar";
-  if (name === "S1") return "Sacrum";
-  if (name === "PB") return "Pelvis";
-  if (name === "FH") return "Femoral";
+  if (/^C\d/.test(name)) return "cervical";
+  if (/^Th\d/.test(name)) return "thoracic";
+  if (/^L\d/.test(name)) return "lumbar";
+  if (name === "S1") return "sacrum";
+  if (name === "PB") return "pelvis";
+  if (name === "FH") return "femoral";
   return null;
+}
+
+// форма слова для числа: 1 изображение, 2 изображения, 5 изображений
+function pluralForm(n, lang) {
+  if (lang !== "ru") return n === 1 ? "one" : "many";
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return "one";
+  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return "few";
+  return "many";
 }
 
 function buildQuery(f) {
@@ -67,6 +69,8 @@ const badgeClass = (c) =>
   c >= 0.7 ? styles.badgeGood : c >= 0.5 ? styles.badgeMid : styles.badgeLow;
 
 export default function CatalogPage() {
+  const { t, lang } = useLang();
+
   const [f, setF] = useState(DEFAULTS);
   const [ready, setReady] = useState(false);
   const [data, setData] = useState(null);
@@ -76,6 +80,9 @@ export default function CatalogPage() {
   const [open, setOpen] = useState(null);
   const [confirm, setConfirm] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
+
+  // "12 изображений", "1 image" и т.д.
+  const count = (n, base) => `${n} ${t(`${base}.${pluralForm(n, lang)}`)}`;
 
   useEffect(() => {
     fetch(`${API}/api/config`)
@@ -89,12 +96,12 @@ export default function CatalogPage() {
     const p = new URLSearchParams(window.location.search);
     const list = (k) => (p.get(k) || "").split(",").filter(Boolean);
     setF({
-      regions: list("regions").filter((r) => REGIONS.some(([k]) => k === r)),
+      regions: list("regions").filter((r) => REGIONS.includes(r)),
       mode: p.get("mode") === "only" ? "only" : "contains",
       classes: list("classes").filter((c) => CLASSES.includes(c)),
       min_conf: Math.min(1, Math.max(0, parseFloat(p.get("min_conf")) || 0)),
       min_count: Math.max(0, parseInt(p.get("min_count"), 10) || 0),
-      sort: SORTS.some(([k]) => k === p.get("sort")) ? p.get("sort") : "newest",
+      sort: SORTS.includes(p.get("sort")) ? p.get("sort") : "newest",
       page: Math.max(1, parseInt(p.get("page"), 10) || 1),
     });
     setReady(true);
@@ -110,7 +117,7 @@ export default function CatalogPage() {
       qs ? `?${qs}` : window.location.pathname
     );
     const ctrl = new AbortController();
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       setLoading(true);
       try {
         const res = await fetch(`${API}/api/catalog?${qs}`, {
@@ -126,7 +133,7 @@ export default function CatalogPage() {
       }
     }, 300);
     return () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       ctrl.abort();
     };
   }, [f, ready, reload]);
@@ -160,14 +167,14 @@ export default function CatalogPage() {
 
   return (
     <div className={styles.root}>
-      <h1 className={styles.title}>Catalog</h1>
+      <h1 className={styles.title}>{t("catalog.title")}</h1>
 
       <div className={styles.layout}>
         {/* ---------- Фильтры ---------- */}
         <aside className={styles.filters}>
-          <h2 className={styles.filterTitle}>Region</h2>
+          <h2 className={styles.filterTitle}>{t("catalog.region")}</h2>
           <div className={styles.chips}>
-            {REGIONS.map(([key, label]) => (
+            {REGIONS.map((key) => (
               <button
                 key={key}
                 type="button"
@@ -176,16 +183,13 @@ export default function CatalogPage() {
                 }`}
                 onClick={() => update({ regions: toggle(f.regions, key) })}
               >
-                {label}
+                {t(`catalog.region.${key}`)}
               </button>
             ))}
           </div>
 
           <div className={styles.segment}>
-            {[
-              ["contains", "Contains"],
-              ["only", "Only"],
-            ].map(([key, label]) => (
+            {MODES.map((key) => (
               <button
                 key={key}
                 type="button"
@@ -194,12 +198,12 @@ export default function CatalogPage() {
                 }`}
                 onClick={() => update({ mode: key })}
               >
-                {label}
+                {t(`catalog.mode.${key}`)}
               </button>
             ))}
           </div>
 
-          <h2 className={styles.filterTitle}>Specific structures</h2>
+          <h2 className={styles.filterTitle}>{t("catalog.structures")}</h2>
           <div className={styles.grid}>
             {CLASSES.map((c) => (
               <button
@@ -216,7 +220,7 @@ export default function CatalogPage() {
           </div>
 
           <h2 className={styles.filterTitle}>
-            Minimum model confidence
+            {t("catalog.minConf")}
             <span className={styles.value}>
               {Math.round(f.min_conf * 100)}%
             </span>
@@ -232,7 +236,7 @@ export default function CatalogPage() {
           />
 
           <h2 className={styles.filterTitle}>
-            Minimum structures found
+            {t("catalog.minCount")}
             <span className={styles.value}>{f.min_count}</span>
           </h2>
           <input
@@ -247,7 +251,7 @@ export default function CatalogPage() {
 
           <div className={styles.filterFoot}>
             <span className={styles.count}>
-              {data ? `${data.total} images` : "…"}
+              {data ? count(data.total, "catalog.images") : "…"}
             </span>
             <button
               type="button"
@@ -255,7 +259,7 @@ export default function CatalogPage() {
               onClick={() => setF({ ...DEFAULTS, sort: f.sort })}
               disabled={!filtered}
             >
-              Reset filters
+              {t("catalog.reset")}
             </button>
           </div>
         </aside>
@@ -263,26 +267,22 @@ export default function CatalogPage() {
         {/* ---------- Результаты ---------- */}
         <section>
           <div className={styles.toolbar}>
-            <span className={styles.hint}>
-              Confidence is the model&apos;s own score, not image quality.
-            </span>
+            <span className={styles.hint}>{t("catalog.hint")}</span>
             <select
               className={styles.select}
               value={f.sort}
               onChange={(e) => update({ sort: e.target.value })}
             >
-              {SORTS.map(([k, label]) => (
+              {SORTS.map((k) => (
                 <option key={k} value={k}>
-                  {label}
+                  {t(`catalog.sort.${k}`)}
                 </option>
               ))}
             </select>
           </div>
 
           {error ? (
-            <div className={styles.empty}>
-              Cannot reach the server. Is the backend running?
-            </div>
+            <div className={styles.empty}>{t("catalog.serverError")}</div>
           ) : loading && !data ? (
             <div className={styles.cards}>
               {Array.from({ length: 6 }).map((_, i) => (
@@ -290,7 +290,7 @@ export default function CatalogPage() {
               ))}
             </div>
           ) : items.length === 0 ? (
-            <div className={styles.empty}>No images match these filters</div>
+            <div className={styles.empty}>{t("catalog.empty")}</div>
           ) : (
             <div
               className={styles.cards}
@@ -327,13 +327,15 @@ export default function CatalogPage() {
                         </span>
                       </div>
                       <div className={styles.meta}>
-                        {new Date(it.uploaded_at).toLocaleDateString()} ·{" "}
-                        {it.num_detections} structures
+                        {new Date(it.uploaded_at).toLocaleDateString(
+                          lang === "ru" ? "ru-RU" : undefined
+                        )}{" "}
+                        · {count(it.num_detections, "catalog.structuresCount")}
                       </div>
                       <div className={styles.tags}>
                         {regions.map((r) => (
                           <span key={r} className={styles.tag}>
-                            {r}
+                            {t(`catalog.region.${r}`)}
                           </span>
                         ))}
                       </div>
@@ -376,7 +378,7 @@ export default function CatalogPage() {
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalImg}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`${API}${open.preview_url}`} alt="Annotated X-ray" />
+              <img src={`${API}${open.preview_url}`} alt={t("catalog.alt")} />
             </div>
             <div className={styles.modalSide}>
               <h3 className={styles.modalTitle}>{open.original_name}</h3>
@@ -395,14 +397,14 @@ export default function CatalogPage() {
                       className={styles.danger}
                       onClick={removeImage}
                     >
-                      Yes, delete
+                      {t("catalog.deleteYes")}
                     </button>
                     <button
                       type="button"
                       className={styles.ghost}
                       onClick={() => setConfirm(false)}
                     >
-                      Cancel
+                      {t("catalog.cancel")}
                     </button>
                   </>
                 ) : (
@@ -413,14 +415,14 @@ export default function CatalogPage() {
                       onClick={() => setConfirm(true)}
                       style={readOnly ? { display: "none" } : undefined}
                     >
-                      Delete
+                      {t("catalog.delete")}
                     </button>
                     <button
                       type="button"
                       className={styles.close}
                       onClick={() => setOpen(null)}
                     >
-                      Close
+                      {t("catalog.close")}
                     </button>
                   </>
                 )}
