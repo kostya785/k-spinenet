@@ -7,47 +7,48 @@ import {
   strokeDashOffset,
 } from "../javascript/aboutCircleMath";
 import styles from "./About.module.css";
+import { useLang } from "../i18n/LanguageProvider";
 
 export default function About() {
   const [scrollRootEl, setScrollRootEl] = useState(null);
+  const { t } = useLang();
 
   return (
     <div ref={setScrollRootEl} className={styles.scrollRoot}>
       <Slide
         imageSide="left"
-        title="Training Pipeline"
-        text="Our model was trained on a curated dataset of about 2500 X‑rays with advanced augmentation and YOLO11s backbone."
+        title={t("about.pipeline.title")}
+        text={t("about.pipeline.text")}
         image={<CounterBlock />}
       />
 
-<Slide
+      <Slide
         imageSide="right"
-        title="Model Accuracy"
-        text="The chart shows the mask mAP50 of the final model on the annotated dataset (preliminary)."
+        title={t("about.accuracy.title")}
+        text={t("about.accuracy.text")}
         image={<AccuracyCircle scrollRoot={scrollRootEl} percent={96.8} />}
       />
 
-<Slide
-  imageSide="left"
-  title="Dataset"
-  text="The dataset includes frontal and lateral X-Rays of backbone with expert‑verified annotations."
-  image={<DatasetGrid />}
-/>
+      <Slide
+        imageSide="left"
+        title={t("about.dataset.title")}
+        text={t("about.dataset.text")}
+        image={<DatasetGrid />}
+      />
 
-<Slide
-  imageSide="right"
-  title="Training Dynamics"
-  text="This chart shows box mAP50‑95 and training box loss over 60 epochs: 20 epochs of initial training and 40 epochs of fine-tuning, which starts at epoch 21."
-  image={<TrainingChart />}
-/>
+      <Slide
+        imageSide="right"
+        title={t("about.dynamics.title")}
+        text={t("about.dynamics.text")}
+        image={<TrainingChart />}
+      />
 
-<Slide
-  imageSide="left"
-  title="Model Performance Metrics"
-  text="These metrics summarize the final performance of the model on the annotated dataset (preliminary) after 60 epochs (20 initial + 40 fine-tuning). Metrics are given for segmentation masks. Precision and Recall describe detection quality, while mAP metrics reflect overall accuracy across IoU thresholds."
-  image={<MetricCards />}
-/>
-
+      <Slide
+        imageSide="left"
+        title={t("about.metrics.title")}
+        text={t("about.metrics.text")}
+        image={<MetricCards />}
+      />
     </div>
   );
 }
@@ -71,10 +72,12 @@ function Slide({ imageSide, title, text, image }) {
 /* ---------------------- COUNTER BLOCK ---------------------- */
 
 function CounterBlock() {
+  const { t } = useLang();
+
   return (
     <div className={styles.counterWrap}>
       <Counter target={2500} duration={1200} />
-      <div className={styles.counterLabel}>X-rays</div>
+      <div className={styles.counterLabel}>{t("about.xrays")}</div>
     </div>
   );
 }
@@ -181,6 +184,9 @@ function AccuracyCircle({ percent = 95, scrollRoot }) {
     </div>
   );
 }
+
+/* ---------------------- DATASET GRID ---------------------- */
+
 function DatasetGrid() {
   const [active, setActive] = useState([]);
 
@@ -208,7 +214,12 @@ function DatasetGrid() {
     </div>
   );
 }
+
+/* ---------------------- TRAINING CHART ---------------------- */
+
 function TrainingChart() {
+  const { t } = useLang();
+
   // mAP50-95 (B): эпохи 1-20 первый запуск, 21-60 дообучение
   const mAP = [
     0.38716,0.48541,0.50232,0.56995,0.55778,
@@ -272,7 +283,7 @@ function TrainingChart() {
         {/* LOSS POINTS */}
         {loss.map((v, i) => (
           <circle
-            key={"l"+i}
+            key={"l" + i}
             cx={x(i)}
             cy={normalize(v, minLoss, maxLoss)}
             r="2.5"
@@ -283,7 +294,7 @@ function TrainingChart() {
         {/* MAP POINTS */}
         {mAP.map((v, i) => (
           <circle
-            key={"m"+i}
+            key={"m" + i}
             cx={x(i)}
             cy={normalize(v, minMAP, maxMAP)}
             r="2.5"
@@ -297,29 +308,27 @@ function TrainingChart() {
           <span className={styles.lossDot}></span> Train Box Loss ↓
         </div>
         <div className={styles.legendItem}>
-          <span className={styles.mapDot}></span> Box mAP50‑95 ↑
+          <span className={styles.mapDot}></span> Box mAP50-95 ↑
         </div>
       </div>
 
       <p className={styles.chartDescription}>
-  <b>Train Box Loss</b> — shows how accurately the model predicts bounding box
-  coordinates. Lower values indicate better localization performance.
-  <br />
-  <b>Box mAP50‑95</b> — the averaged detection accuracy across IoU thresholds from
-  0.50 to 0.95. This is the primary metric for evaluating object detection
-  quality: higher values indicate better overall performance.
-</p>
-
+        <b>{t("about.chart.lossName")}</b> — {t("about.chart.lossDesc")}
+        <br />
+        <b>{t("about.chart.mapName")}</b> — {t("about.chart.mapDesc")}
+      </p>
     </div>
   );
 }
+
+/* ---------------------- METRIC CARDS ---------------------- */
 
 function MetricCards() {
   const metrics = [
     { label: "Precision", value: 0.93291, color: "#4a90e2" },
     { label: "Recall", value: 0.93767, color: "#50c878" },
     { label: "mAP50", value: 0.96792, color: "#a78bfa" },
-    { label: "mAP50‑95", value: 0.58552, color: "#ff7f50" },
+    { label: "mAP50-95", value: 0.58552, color: "#ff7f50" },
   ];
 
   return (
@@ -337,5 +346,4 @@ function MetricCards() {
       ))}
     </div>
   );
-
 }

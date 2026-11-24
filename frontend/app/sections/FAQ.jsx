@@ -1,30 +1,21 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import styles from "./FAQ.module.css";
+import { useLang } from "../i18n/LanguageProvider";
 
 export default function FAQPage() {
+  const { t } = useLang();
+
   return (
     <section className={styles.section}>
-      <h2 className={styles.title}>FAQ</h2>
+      <h2 className={styles.title}>{t("faq.title")}</h2>
 
       <div className={styles.list}>
-        <FAQItem
-          question="How model is working?"
-          answer="The model analyzes an X-ray image, identifies vertebral segments and determines their coordinates with high accuracy."
-        />
-        <FAQItem
-          question="What pictures are supported?"
-          answer="Standard frontal and sagittal images are supported, including all sections of the spine."
-        />
-        <FAQItem
-          question="Where are my images processed and stored?"
-          answer="Uploaded images are processed only while your request is handled and are not saved. The demo server is hosted outside the Russian Federation (Render), so please do not upload images that contain personal data: DICOM files with a patient name, birth date, address or phone number are rejected. Images in the gallery and the catalog are anonymized or taken from open sources. Details are in the Privacy Policy at /privacy/."
-        />
-                <FAQItem
-          question="What percentage of accuracy?"
-          answer="Preliminary results on the annotated dataset: 96.8% mask mAP50 and 58.6% mask mAP50-95; precision is 93.3% and recall is 93.8%. An evaluation on an independent test set is planned."
-        />
+        <FAQItem question={t("faq.q1")} answer={t("faq.a1")} />
+        <FAQItem question={t("faq.q2")} answer={t("faq.a2")} />
+        <FAQItem question={t("faq.q3")} answer={t("faq.a3")} />
+        <FAQItem question={t("faq.q4")} answer={t("faq.a4")} />
       </div>
     </section>
   );
@@ -33,6 +24,15 @@ export default function FAQPage() {
 function FAQItem({ question, answer }) {
   const itemRef = useRef(null);
   const contentRef = useRef(null);
+
+  // если ответ открыт и язык сменился, пересчитываем высоту под новый текст
+  useEffect(() => {
+    const item = itemRef.current;
+    const content = contentRef.current;
+    if (item && content && item.getAttribute("data-open") === "true") {
+      content.style.maxHeight = `${content.scrollHeight}px`;
+    }
+  }, [answer]);
 
   function toggle() {
     const item = itemRef.current;

@@ -3,7 +3,7 @@ import "./globals.css";
 import styles from "./layout.module.css";
 
 import Header from "./components/Header";
-
+import { LanguageProvider } from "./i18n/LanguageProvider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -26,10 +26,12 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <Header />
-        <main className={styles.main}>{children}</main>
-      </body>
+     <body className="min-h-full flex flex-col">
+  <LanguageProvider>
+    <Header />
+    <main className={styles.main}>{children}</main>
+  </LanguageProvider>
+</body>
     </html>
   );
 }

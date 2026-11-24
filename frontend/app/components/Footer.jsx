@@ -2,13 +2,16 @@
 
 import styles from "./Footer.module.css";
 import { FaTelegram, FaInstagram, FaGithub, FaEnvelope, FaPinterest } from "react-icons/fa";
+import { useLang } from "../i18n/LanguageProvider";
 
 export default function Footer() {
+  const { t } = useLang();
+
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <div className={styles.credit}>
-          built by <b>Konstantinopol</b>
+          {t("footer.builtBy")} <b>Konstantinopol</b>
         </div>
 
         <div className={styles.links}>
@@ -29,8 +32,8 @@ export default function Footer() {
           </a>
 
           <a href="https://pin.it/6vV5bask9" target="_blank" rel="noopener noreferrer" className={styles.link} aria-label="Pinterest">
-  <FaPinterest />
-</a>
+            <FaPinterest />
+          </a>
         </div>
       </div>
     </footer>

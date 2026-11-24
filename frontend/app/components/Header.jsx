@@ -4,10 +4,22 @@ import { useState } from "react";
 import Link from "next/link";
 import styles from "./Header.module.css";
 import { asset } from "../../lib/config";
+import { useLang } from "../i18n/LanguageProvider";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const { lang, setLang, t } = useLang();
+
   const close = () => setOpen(false);
+  const toggleLang = () => setLang(lang === "ru" ? "en" : "ru");
+
+  const langLabel = (
+    <>
+      <span className={lang === "ru" ? styles.langActive : ""}>RU</span>
+      {" / "}
+      <span className={lang === "en" ? styles.langActive : ""}>EN</span>
+    </>
+  );
 
   return (
     <header className={styles.header}>
@@ -30,16 +42,20 @@ export default function Header() {
       </button>
 
       <nav className={`${styles.nav} ${open ? styles.navOpen : ""}`}>
-        <Link href="/#hero" className={styles.navLink} onClick={close}>Main</Link>
-        <Link href="/#try" className={styles.navLink} onClick={close}>Try Model</Link>
-        <Link href="/catalog" className={styles.navLink} onClick={close}>Catalog</Link>
-        <Link href="/#about" className={styles.navLink} onClick={close}>About</Link>
-        <Link href="/#faq" className={styles.navLink} onClick={close}>FAQ</Link>
-        <Link href="/privacy/" className={styles.navLink} onClick={close}>Privacy</Link>
+        <Link href="/#hero" className={styles.navLink} onClick={close}>{t("nav.main")}</Link>
+        <Link href="/#try" className={styles.navLink} onClick={close}>{t("nav.try")}</Link>
+        <Link href="/catalog" className={styles.navLink} onClick={close}>{t("nav.catalog")}</Link>
+        <Link href="/#about" className={styles.navLink} onClick={close}>{t("nav.about")}</Link>
+        <Link href="/#faq" className={styles.navLink} onClick={close}>{t("nav.faq")}</Link>
+        <Link href="/privacy/" className={styles.navLink} onClick={close}>{t("nav.privacy")}</Link>
+
+        <button type="button" className={styles.navLang} onClick={toggleLang}>
+          {langLabel}
+        </button>
       </nav>
 
-      <button type="button" className={styles.langBtn}>
-        RU / EN
+      <button type="button" className={styles.langBtn} onClick={toggleLang}>
+        {langLabel}
       </button>
     </header>
   );

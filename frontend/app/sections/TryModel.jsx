@@ -6,10 +6,9 @@ import { GALLERY_PATHS } from "../javascript/tryModelGallery";
 import { API_URL, asset } from "../../lib/config";
 import dicomParser from "dicom-parser";
 import Link from "next/link";
+import { useLang } from "../i18n/LanguageProvider";
 
 const BLOCK_PERSONAL = process.env.NEXT_PUBLIC_BLOCK_PERSONAL_DATA === "1";
-const NOTICE_TEXT =
-  "This file contains patient identifiers (name or birth date). It was not uploaded. Please anonymize it or choose an image from the gallery.";
 
 // Проверка тегов DICOM прямо в браузере: файл с данными пациента не уходит на сервер
 function hasPersonalData(buffer) {
@@ -19,7 +18,7 @@ function hasPersonalData(buffer) {
     const anon = /anon|unknown|removed|de-?identified|none/i.test(name) || /\d/.test(name);
     if (name && !anon) return true;
     return ["x00100030", "x00101040", "x00102154", "x00101001"].some(
-      (t) => (ds.string(t) || "").trim()
+      (tag) => (ds.string(tag) || "").trim()
     );
   } catch {
     return false;
@@ -27,11 +26,14 @@ function hasPersonalData(buffer) {
 }
 
 export default function TryModel() {
+  const { t } = useLang();
+
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [notice, setNotice] = useState("");
+  // true = показать предупреждение о персональных данных (текст берём из словаря при рендере)
+  const [notice, setNotice] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [userUpload, setUserUpload] = useState(false);
 
@@ -44,7 +46,7 @@ export default function TryModel() {
     const uploaded = input.files?.[0];
     if (!uploaded) return;
 
-    setNotice("");
+    setNotice(false);
     const isDcm = uploaded.name.toLowerCase().endsWith(".dcm");
     if (isDcm && BLOCK_PERSONAL) {
       const buf = await uploaded.arrayBuffer();
@@ -53,7 +55,7 @@ export default function TryModel() {
         setFile(null);
         setPreview(null);
         setResult(null);
-        setNotice(NOTICE_TEXT);
+        setNotice(true);
         return;
       }
     }
@@ -70,7 +72,7 @@ export default function TryModel() {
 
   async function handleGallerySelect(src) {
     setUserUpload(false);
-    setNotice("");
+    setNotice(false);
     setPreview(src);
     setResult(null);
 
@@ -98,7 +100,7 @@ export default function TryModel() {
       const data = await res.json();
 
       if (data.error === "personal_data") {
-        setNotice(NOTICE_TEXT);
+        setNotice(true);
         setLoading(false);
         return;
       }
@@ -110,7 +112,7 @@ export default function TryModel() {
       setResult(data);
     } catch (err) {
       console.error(err);
-      alert("Ошибка при запросе к модели");
+      alert(t("try.error"));
     }
 
     setLoading(false);
@@ -133,7 +135,7 @@ export default function TryModel() {
 
   return (
     <div className={styles.root}>
-      <h2 className={styles.title}>Try the Model</h2>
+      <h2 className={styles.title}>{t("try.title")}</h2>
 
       <label className={styles.uploadLabel}>
         <input
@@ -142,22 +144,22 @@ export default function TryModel() {
           onChange={handleUpload}
           className={styles.hiddenInput}
         />
-        <span className={styles.uploadHint}>Click to upload X‑ray or DICOM</span>
+        <span className={styles.uploadHint}>{t("try.upload")}</span>
       </label>
 
       {BLOCK_PERSONAL && (
         <p style={{ fontSize: "14px", color: "#555", maxWidth: "500px", textAlign: "center", margin: "0 0 10px" }}>
-          Do not upload images that contain personal data. Files with patient identifiers are rejected.
+          {t("try.hint")}
         </p>
       )}
       {notice && (
         <p role="alert" style={{ fontSize: "14px", color: "#b3261e", maxWidth: "500px", textAlign: "center", margin: "0 0 10px" }}>
-          {notice}
+          {t("try.notice")}
         </p>
       )}
 
       <div className={styles.gallerySticky}>
-        <p className={styles.galleryHint}>or choose from our gallery</p>
+        <p className={styles.galleryHint}>{t("try.gallery")}</p>
 
         <div className={styles.galleryRow}>
           {GALLERY_PATHS.map((src, i) => (
@@ -184,7 +186,7 @@ export default function TryModel() {
               display: "inline-block",
               position: "relative",
             }}
-            title="Нажмите, чтобы развернуть и рассмотреть детали"
+            title={t("try.previewTitle")}
           >
             <img
               key={preview}
@@ -205,7 +207,7 @@ export default function TryModel() {
                 fontSize: "12px",
               }}
             >
-              🔍 Клик для зума
+              {t("try.zoomBadge")}
             </span>
           </div>
         </div>
@@ -222,9 +224,9 @@ export default function TryModel() {
             style={{ marginTop: "3px" }}
           />
           <span>
-            I confirm that this image contains no personal data and I have read the{" "}
+            {t("try.consent.before")}
             <Link href="/privacy/" style={{ textDecoration: "underline" }}>
-              Privacy Policy
+              {t("try.consent.link")}
             </Link>
             .
           </span>
@@ -238,21 +240,21 @@ export default function TryModel() {
           canDetect ? styles.detectBtnActive : styles.detectBtnDisabled
         }`}
       >
-        {loading ? "Detecting..." : "Detect"}
+        {loading ? t("try.detecting") : t("try.detect")}
       </button>
 
       {result && (
         <div className={styles.resultCard}>
-          <h3 className={styles.resultTitle}>Result</h3>
+          <h3 className={styles.resultTitle}>{t("try.result")}</h3>
 
           {result.detections?.length > 0 ? (
             result.detections.map((det, i) => (
               <p key={i} className={styles.resultLine}>
-                Class: <b>{det.class}</b> | Confidence: <b>{(det.confidence * 100).toFixed(1)}%</b>
+                {t("try.class")} <b>{det.class}</b> | {t("try.confidence")} <b>{(det.confidence * 100).toFixed(1)}%</b>
               </p>
             ))
           ) : (
-            <p className={styles.resultLine}>No objects detected</p>
+            <p className={styles.resultLine}>{t("try.none")}</p>
           )}
         </div>
       )}
@@ -292,7 +294,7 @@ export default function TryModel() {
                 cursor: "pointer",
               }}
             >
-              ➕ Zoom In
+              {t("try.zoomIn")}
             </button>
             <button
               onClick={handleZoomOut}
@@ -302,7 +304,7 @@ export default function TryModel() {
                 cursor: "pointer",
               }}
             >
-              ➖ Zoom Out
+              {t("try.zoomOut")}
             </button>
             <button
               onClick={closeModal}
@@ -316,7 +318,7 @@ export default function TryModel() {
                 borderRadius: "4px",
               }}
             >
-              ❌ Закрыть
+              {t("try.close")}
             </button>
           </div>
 
